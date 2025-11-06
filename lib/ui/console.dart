@@ -36,6 +36,7 @@ class HospitalConsole {
 
     if (gmailInput != null && passwordInput != null) {
       hospital.admin.login(gmailInput, passwordInput);
+      _adminMenu(hospital);
     }
   }
 
@@ -55,6 +56,31 @@ class HospitalConsole {
       } else {
         print("Invalid doctor credentials.");
       }
+    }
+  }
+}
+
+void _adminMenu(Hospital hospital) {
+  while (hospital.admin.isLoggedIn) {
+    print("\n--- Admin Menu ---");
+    print("1. Book Appointment for patient");
+    print("2. View All Appointments");
+    print("3. Logout");
+    stdout.write("Choose an option: ");
+    String? option = stdin.readLineSync();
+
+    switch (option) {
+      case '1':
+        Appointment appointment = hospital.getAppointmentFromUserInput()!;
+        hospital.createAndAssignAppointment(appointment);
+      case '2':
+        hospital.viewAllAppointment();
+        break;
+      case '3':
+        hospital.admin.logout();
+        break;
+      default:
+        print("Invalid option.");
     }
   }
 }
