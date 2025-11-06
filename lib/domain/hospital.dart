@@ -1,3 +1,5 @@
+import 'dart:io';
+
 enum DoctorSpecialization {
   InternalMedicine,
   Surgery,
@@ -64,6 +66,88 @@ class Hospital {
     required this.appointments,
   });
 
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'admin': {'userId': admin.userId, 'gmail': admin.gmail},
+    'location': location,
+    'contact': contact,
+    'patients': patients.map((p) => p.toJson()).toList(),
+    'doctors': doctors.map((d) => d.toJson()).toList(),
+    'appointments': appointments.map((d) => d.toJson()).toList(),
+  };
+
+  Hospital.fromJson(Map<String, dynamic> json)
+    : name = json['name'] ?? '',
+      admin = (json['admin'] is Map)
+          ? Admin(
+              userId: (json['admin']['userId'] as int?) ?? 1,
+              gmail: (json['admin']['gmail'] as String?) ?? 'admin@gmail.com',
+              password: (json['admin']['password'] as String?) ?? '123456',
+            )
+          : Admin(userId: 1, gmail: 'admin@gmail.com', password: '123456'),
+      location = json['location'] ?? '',
+      contact = json['contact'] ?? '',
+      doctors = [],
+      patients = [],
+      appointments = [] {
+    // Parse patients
+    if (json['patients'] is List) {
+      for (var p in json['patients']) {
+        if (p is Map<String, dynamic>) {
+          patients.add(Patient.fromJson(p));
+        }
+      }
+    }
+
+    // Parse doctors
+    if (json['doctors'] is List) {
+      for (var d in json['doctors']) {
+        if (d is Map<String, dynamic>) {
+          doctors.add(Doctor.fromJson(d));
+        }
+      }
+    }
+
+    // Build lookup maps
+    final docById = {for (var d in doctors) d.id: d};
+    final patById = {for (var p in patients) p.id: p};
+
+    // Parse appointments and link to doctor/patient
+    if (json['appointments'] is List) {
+      for (var a in json['appointments']) {
+        if (a is Map<String, dynamic>) {
+          String? docId;
+          String? patId;
+
+          if (a['doctor'] is String) {
+            docId = a['doctor'];
+          } else if (a['doctor'] is Map) {
+            docId = (a['doctor']['id'] as String?);
+          }
+
+          if (a['patient'] is String) {
+            patId = a['patient'];
+          } else if (a['patient'] is Map) {
+            patId = (a['patient']['id'] as String?);
+          }
+
+          final doctor = docId != null ? docById[docId] : null;
+          final patient = patId != null ? patById[patId] : null;
+
+          if (doctor != null && patient != null) {
+            final appt = Appointment.fromJson(
+              a,
+              doctor: doctor,
+              patient: patient,
+            );
+            appointments.add(appt);
+            doctor.appointments.add(appt);
+            patient.appointments.add(appt);
+          }
+        }
+      }
+    }
+  }
   void addPatient(Patient patient) {
     // Check if patient already exists
     bool exists = patients.any((p) => p.id == patient.id);
@@ -84,6 +168,16 @@ class Hospital {
     }
     doctors.add(doctor);
     print("Doctor ${doctor.name} added successfully");
+  }
+
+  void addAppointment(Appointment appointment) {
+    bool exists = appointments.any((a) => a.id == appointment.id);
+    if (exists) {
+      print("Appoinment with ID ${appointment.id} already exists");
+      return;
+    }
+    appointments.add(appointment);
+    print("Appointment ${appointment.id} added successfully");
   }
 
   Doctor? authenticateDoctor(String email, String password) {
@@ -114,9 +208,98 @@ class Hospital {
       return null;
     }
   }
+
+  void viewAllAppointment() {
+    if (appointments.isEmpty) {
+      print("No appointments found");
+      return;
+    }
+
+    for (var a in appointments) {
+      print("\nAppointment ID: ${a.id}");
+      print("Doctor: ${a.doctor.name} (${a.doctor.id})");
+      print("Patient: ${a.patient.name} (${a.patient.id})");
+      print("Date: ${a.date}");
+      print("Status: ${a.status ? 'Confirmed' : 'Pending'}");
+    }
+  }
+
+  void makeAppointment() {
+    stdout.write("Enter Doctor ID: ");
+    String? doctorId = stdin.readLineSync();
+
+    stdout.write("Enter Patient ID: ");
+    String? patientId = stdin.readLineSync();
+
+    stdout.write(
+      "Enter Date and time (YYYY-MM-DD HH:MM) or leave empty for now: ",
+    );
+    String? dateInput = stdin.readLineSync();
+
+    if (doctorId == null || doctorId.isEmpty) {
+      print("✗ Doctor ID cannot be empty");
+      return;
+    }
+
+    if (patientId == null || patientId.isEmpty) {
+      print("✗ Patient ID cannot be empty");
+      return;
+    }
+
+    Doctor? doctor = findDoctorById(doctorId);
+    if (doctor == null) {
+      print("✗ Doctor with ID $doctorId not found");
+      return;
+    }
+
+    Patient? patient = findPatientById(patientId);
+    if (patient == null) {
+      print("✗ Patient with ID $patientId not found");
+      return;
+    }
+
+    DateTime date;
+    if (dateInput == null || dateInput.trim().isEmpty) {
+      date = DateTime.now();
+    } else {
+      // Try to parse input like "YYYY-MM-DD HH:MM"
+      try {
+        // Replace space with 'T' so DateTime.parse can handle it, or try direct parse
+        String normalized = dateInput.trim().replaceFirst(' ', 'T');
+        date = DateTime.parse(normalized);
+      } catch (e) {
+        // Fallback: try parsing only date portion
+        try {
+          date = DateTime.parse(dateInput.trim());
+        } catch (e) {
+          print("✗ Invalid date format. Using current date/time instead.");
+          date = DateTime.now();
+        }
+      }
+    }
+
+    // Create the appointment (ID is auto-generated)
+    Appointment appointment = Appointment(
+      date: date,
+      doctor: doctor,
+      patient: patient,
+    );
+
+    // Add to hospital records (addAppointment checks for duplicate IDs)
+    addAppointment(appointment);
+
+    // Attach to doctor and patient
+    doctor.appointments.add(appointment);
+    patient.appointments.add(appointment);
+
+    print(
+      "✓ Appointment ${appointment.id} assigned to Dr. ${doctor.name} for patient ${patient.name} on $date",
+    );
+  }
 }
 
 class Doctor extends User {
+  static int _idCounter = 1;
   String id;
   String name;
   DoctorSpecialization specialization;
@@ -127,12 +310,47 @@ class Doctor extends User {
     int? userId,
     required String gmail,
     required String password,
-    required this.id,
+    String? id,
     required this.name,
     required this.contact,
     required this.specialization,
-    required this.appointments,
-  }) : super(userId: userId, gmail: gmail, password: password);
+    List<Appointment>? appointments,
+  }) : id = id ?? 'D${Doctor._idCounter++}',
+       appointments = appointments ?? [],
+       super(userId: userId, gmail: gmail, password: password);
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'gmail': gmail,
+    'password': password,
+    'contact': contact,
+    'specialization': specialization.toString().split('.').last,
+    'appointments': appointments.map((a) => a.id).toList(),
+  };
+
+  factory Doctor.fromJson(Map<String, dynamic> json) {
+    // specialization may be stored as string
+    DoctorSpecialization spec = DoctorSpecialization.InternalMedicine;
+    if (json['specialization'] is String) {
+      final s = (json['specialization'] as String).toLowerCase();
+      if (s.contains('surgery')) spec = DoctorSpecialization.Surgery;
+      if (s.contains('pediatrics')) spec = DoctorSpecialization.Pediatrics;
+      if (s.contains('obstetrics') || s.contains('gynecology'))
+        spec = DoctorSpecialization.ObstetricsGynecology;
+      if (s.contains('psychiatry')) spec = DoctorSpecialization.Psychiatry;
+    }
+
+    return Doctor(
+      id: json['id'] as String?,
+      gmail: (json['gmail'] as String?) ?? '',
+      password: (json['password'] as String?) ?? '',
+      name: (json['name'] as String?) ?? '',
+      contact: (json['contact'] as String?) ?? '',
+      specialization: spec,
+      appointments: [], // appointments linked later by Hospital.fromJson
+    );
+  }
 
   void viewAppoinments() {
     print("\n=== Appointments for Dr. $name ===");
@@ -173,69 +391,45 @@ class Doctor extends User {
 }
 
 class Patient {
+  static int _idCounter = 1;
   String id;
   String name;
-  String age;
+  int age;
   String gender;
   List<Appointment> appointments;
 
   Patient({
     required this.age,
     required this.gender,
-    required this.id,
+    String? id,
     required this.name,
-    required this.appointments,
-  });
+    List<Appointment>? appointments,
+  }) : id = id ?? 'P${Patient._idCounter++}',
+       appointments = appointments ?? [];
 
-  void bookAppoinment(Hospital hospital, String doctorId, DateTime date) {
-    // Find the doctor
-    Doctor? doctor;
-    try {
-      doctor = hospital.doctors.firstWhere((d) => d.id == doctorId);
-    } catch (e) {
-      print("Doctor with ID $doctorId not found");
-      return;
-    }
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'age': age,
+    'gender': gender,
+    'appointments': appointments.map((a) => a.id).toList(),
+  };
 
-    // Check if doctor is available on that date
-    bool hasConflict = doctor.appointments.any(
-      (apt) =>
-          apt.date.year == date.year &&
-          apt.date.month == date.month &&
-          apt.date.day == date.day,
+  factory Patient.fromJson(Map<String, dynamic> json) {
+    return Patient(
+      id: json['id'] as String?,
+      name: (json['name'] as String?) ?? '',
+      age: (json['age'] is int)
+          ? json['age'] as int
+          : int.tryParse('${json['age']}') ?? 0,
+      gender: (json['gender'] as String?) ?? '',
+      appointments: [],
     );
-
-    if (hasConflict) {
-      print("Doctor is not available on ${date.toString().split(' ')[0]}");
-      return;
-    }
-
-    // Create new appointment
-    String appointmentId = "APT${hospital.appointments.length + 1}";
-    Appointment newAppointment = Appointment(
-      id: appointmentId,
-      date: date,
-      status: false, // Pending by default
-      doctor: doctor,
-      patient: this,
-    );
-
-    // Add to all relevant lists
-    appointments.add(newAppointment);
-    doctor.appointments.add(newAppointment);
-    hospital.appointments.add(newAppointment);
-
-    print("Appointment booked successfully!");
-    print("Appointment ID: $appointmentId");
-    print(
-      "Doctor: ${doctor.name} (${doctor.specialization.toString().split('.').last})",
-    );
-    print("Date: ${date.toString().split(' ')[0]}");
-    print("Status: Pending confirmation");
   }
 }
 
 class Appointment {
+  static int _idCounter = 1;
   String id;
   DateTime date;
   bool status;
@@ -244,14 +438,48 @@ class Appointment {
   Meeting? meeting;
 
   Appointment({
-    required this.id,
+    String? id,
     required this.date,
     this.status = false,
     required this.doctor,
     required this.patient,
     this.meeting,
-  });
+  }) : id = id ?? 'A${Appointment._idCounter++}';
 
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'date': date.toIso8601String(),
+    'status': status,
+    'doctor': doctor.id,
+    'patient': patient.id,
+    'meeting': meeting?.toJson(),
+  };
+
+  factory Appointment.fromJson(
+    Map<String, dynamic> json, {
+    required Doctor doctor,
+    required Patient patient,
+  }) {
+    DateTime parsedDate;
+    if (json['date'] is String) {
+      parsedDate = DateTime.tryParse(json['date']) ?? DateTime.now();
+    } else if (json['date'] is DateTime) {
+      parsedDate = json['date'];
+    } else {
+      parsedDate = DateTime.now();
+    }
+
+    return Appointment(
+      id: json['id'] as String?,
+      date: parsedDate,
+      status: json['status'] as bool? ?? false,
+      doctor: doctor,
+      patient: patient,
+      meeting: json['meeting'] is Map<String, dynamic>
+          ? Meeting.fromJson(json['meeting'])
+          : null,
+    );
+  }
   void createMeeting(String room) {
     if (!status) {
       print("Cannot create meeting for unconfirmed appointment");
@@ -278,4 +506,19 @@ class Meeting {
   String room;
 
   Meeting({this.id, required this.dateTime, required this.room});
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'dateTime': dateTime.toIso8601String(),
+    'room': room,
+  };
+
+  factory Meeting.fromJson(Map<String, dynamic> json) {
+    DateTime dt = DateTime.tryParse(json['dateTime'] ?? '') ?? DateTime.now();
+    return Meeting(
+      id: json['id'] as String?,
+      dateTime: dt,
+      room: (json['room'] as String?) ?? '',
+    );
+  }
 }

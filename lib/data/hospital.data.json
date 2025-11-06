@@ -1,0 +1,68 @@
+{
+  "name": "Khmer Treatment",
+  "admin": {
+    "userId": 1,
+    "gmail": "admin@gmail.com"
+  },
+  "location": "PhnomPenh",
+  "contact": "0123456789",
+  "patients": [
+    {
+      "id": "P1",
+      "name": "youdy",
+      "age": 18,
+      "gender": "Male",
+      "appointments": [
+        "A1"
+      ]
+    },
+    {
+      "id": "P2",
+      "name": "Sreyka",
+      "age": 20,
+      "gender": "Female",
+      "appointments": []
+    }
+  ],
+  "doctors": [
+    {
+      "id": "D1",
+      "name": "nha",
+      "gmail": "nha@gmail.com",
+      "password": "123",
+      "contact": "0112345678",
+      "specialization": "Surgery",
+      "appointments": [
+        "A1"
+      ]
+    },
+    {
+      "id": "D2",
+      "name": "thyrak",
+      "gmail": "thyrak@gmail.com",
+      "password": "123",
+      "contact": "0112345678",
+      "specialization": "Surgery",
+      "appointments": []
+    },
+    {
+      "id": "D3",
+      "name": "youdy",
+      "gmail": "youdy@gmail.com",
+      "password": "123",
+      "contact": "0112345678",
+      "specialization": "Surgery",
+      "appointments": []
+    }
+  ],
+  "appointments": [
+    {
+      "id": "A1",
+      "date": "2025-11-08T00:00:00.000",
+      "status": false,
+      "doctor": "D1",
+      "patient": "P1",
+      "meeting": null
+    }
+  ]
+}
