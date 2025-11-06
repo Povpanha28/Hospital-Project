@@ -348,12 +348,17 @@ class Doctor extends User {
       print("Patient: ${appointment.patient.name}");
       print("Date: ${appointment.date}");
       print("Status: ${appointment.status ? 'Confirmed' : 'Pending'}");
+      // choose option to accept appointment
+
+
       // if (appointment.hasMeeting()) {
       //   print(
       //     "Meeting: ${appointment.meeting!.room} - ${appointment.meeting!.getMeetingStatus()}",
       //   );
       // }
     }
+    // Option to accept appointments
+
   }
 
   void acceptAppoinment(Appointment appointment) {
