@@ -1,3 +1,4 @@
+import 'dart:io';
 enum DoctorSpecialization {
   InternalMedicine,
   Surgery,
@@ -146,12 +147,17 @@ class Doctor extends User {
       print("Patient: ${appointment.patient.name}");
       print("Date: ${appointment.date}");
       print("Status: ${appointment.status ? 'Confirmed' : 'Pending'}");
+      // choose option to accept appointment
+
+
       // if (appointment.hasMeeting()) {
       //   print(
       //     "Meeting: ${appointment.meeting!.room} - ${appointment.meeting!.getMeetingStatus()}",
       //   );
       // }
     }
+    // Option to accept appointments
+
   }
 
   void acceptAppoinment(Appointment appointment) {
@@ -168,6 +174,19 @@ class Doctor extends User {
     appointment.status = true;
     print(
       "Appointment ${appointment.id} accepted for patient ${appointment.patient.name}",
+    );
+  }
+  //reject appointment
+  void rejectAppoinment(Appointment appointment) {
+    if (!appointments.contains(appointment)) {
+      print("This appointment is not assigned to you");
+      return;
+    }
+
+    appointments.remove(appointment);
+    appointment.patient.appointments.remove(appointment);
+    print(
+      "Appointment ${appointment.id} rejected for patient ${appointment.patient.name}",
     );
   }
 }
