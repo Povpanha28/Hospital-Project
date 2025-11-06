@@ -10,24 +10,40 @@ class User {
   int? userId;
   String gmail;
   String password;
+  bool isLoggedIn;
 
-  User({this.userId, required this.gmail, required this.password});
+  User({
+    this.userId,
+    required this.gmail,
+    required this.password,
+    this.isLoggedIn = false,
+  });
+
+  bool login(String email, String pass) {
+    if (gmail == email && password == pass) {
+      isLoggedIn = true;
+      print("Login successful! Welcome back.");
+      return true;
+    } else {
+      print("Login failed! Invalid email or password.");
+      return false;
+    }
+  }
+
+  bool logout() {
+    if (!isLoggedIn) {
+      print("✗ You are not logged in.");
+      return true;
+    }
+    isLoggedIn = false;
+    print("✓ Logout successful! Goodbye.");
+    return false;
+  }
 }
 
 class Admin extends User {
   Admin({required int userId, required String gmail, required String password})
     : super(userId: userId, gmail: gmail, password: password);
-  void EditHospitalInfo(
-    Hospital hospital, {
-    String? name,
-    String? location,
-    String? contact,
-  }) {
-    if (name != null) hospital.name = name;
-    if (location != null) hospital.location = location;
-    if (contact != null) hospital.contact = contact;
-    print("Hospital information updated successfully");
-  }
 }
 
 class Hospital {
@@ -69,6 +85,35 @@ class Hospital {
     doctors.add(doctor);
     print("Doctor ${doctor.name} added successfully");
   }
+
+  Doctor? authenticateDoctor(String email, String password) {
+    try {
+      Doctor doctor = doctors.firstWhere((d) => d.gmail == email);
+      if (doctor.login(email, password)) {
+        return doctor;
+      }
+      return null;
+    } catch (e) {
+      print("✗ Doctor account not found");
+      return null;
+    }
+  }
+
+  Doctor? findDoctorById(String id) {
+    try {
+      return doctors.firstWhere((d) => d.id == id);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Patient? findPatientById(String id) {
+    try {
+      return patients.firstWhere((p) => p.id == id);
+    } catch (e) {
+      return null;
+    }
+  }
 }
 
 class Doctor extends User {
@@ -79,7 +124,7 @@ class Doctor extends User {
   List<Appointment> appointments;
 
   Doctor({
-    required int userId,
+    int? userId,
     required String gmail,
     required String password,
     required this.id,
@@ -201,7 +246,7 @@ class Appointment {
   Appointment({
     required this.id,
     required this.date,
-    required this.status,
+    this.status = false,
     required this.doctor,
     required this.patient,
     this.meeting,

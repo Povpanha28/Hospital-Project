@@ -2,9 +2,20 @@ import 'lib/domain/hospital.dart';
 import 'lib/ui/console.dart';
 
 void main() {
-  List<Doctor> doctors = [];
-  List<Patient> patients = [];
   List<Appointment> appointments = [];
+
+  List<Doctor> doctors = [
+    Doctor(
+      gmail: "nha@gmail.com",
+      password: "123",
+      id: "D1",
+      name: "nha",
+      contact: "0112345678",
+      specialization: DoctorSpecialization.Surgery,
+      appointments: [],
+    ),
+  ];
+  List<Patient> patients = [];
 
   Hospital hospital = Hospital(
     name: "Khmer Treatment",
@@ -17,5 +28,4 @@ void main() {
   HospitalConsole console = HospitalConsole(hospital);
 
   console.showConsole();
-  
 }
