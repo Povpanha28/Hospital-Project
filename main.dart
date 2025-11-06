@@ -17,4 +17,5 @@ void main() {
   HospitalConsole console = HospitalConsole(hospital);
 
   console.showConsole();
+  
 }
