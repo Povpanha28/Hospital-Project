@@ -34,22 +34,22 @@ class User {
 
   bool logout() {
     if (!isLoggedIn) {
-      print("✗ You are not logged in.");
+      print("You are not logged in.");
       return true;
     }
     isLoggedIn = false;
-    print("✓ Logout successful! Goodbye.");
+    print("Logout successful! Goodbye.");
     return false;
   }
 }
 
 class Admin extends User {
   Admin({required int userId, required String gmail, required String password})
-    : super(userId: userId, gmail: gmail, password: password);
+      : super(userId: userId, gmail: gmail, password: password);
 }
 
 class Hospital {
-  Admin admin = Admin(userId: 01, gmail: "admin@gmail.com", password: "123456");
+  Admin admin = Admin(userId: 01, gmail: "admin", password: "123");
   String name;
   String location;
   String contact;
@@ -66,30 +66,195 @@ class Hospital {
     required this.appointments,
   });
 
+  void addPatient(Patient patient) {
+    // Check if patient already exists
+    bool exists = patients.any((p) => p.id == patient.id);
+    if (exists) {
+      print("Patient with ID ${patient.id} already exists");
+      return;
+    }
+    patients.add(patient);
+    print("Patient ${patient.name} added successfully");
+  }
+
+  void addDoctor(Doctor doctor) {
+    // Check if doctor already exists
+    bool exists = doctors.any((d) => d.id == doctor.id);
+    if (exists) {
+      print("Doctor with ID ${doctor.id} already exists");
+      return;
+    }
+    doctors.add(doctor);
+    print("Doctor ${doctor.name} added successfully");
+  }
+
+  void addAppointment(Appointment appointment) {
+    // Prevent creating appointments in the past
+    if (appointment.date.isBefore(DateTime.now())) {
+      throw Exception(
+          "Cannot create appointment in the past (${appointment.date}).");
+    }
+
+    bool exists = appointments.any((a) => a.id == appointment.id);
+    if (exists) {
+      print("Appoinment with ID ${appointment.id} already exists");
+      return;
+    }
+
+    appointments.add(appointment);
+    print("Appointment ${appointment.id} added successfully");
+  }
+
+  Doctor? authenticateDoctor(String email, String password) {
+    try {
+      Doctor doctor = doctors.firstWhere((d) => d.gmail == email);
+      if (doctor.login(email, password)) {
+        return doctor;
+      }
+      return null;
+    } catch (e) {
+      print("✗ Doctor account not found");
+      return null;
+    }
+  }
+
+  Doctor? findDoctorById(String id) {
+    try {
+      return doctors.firstWhere((d) => d.id == id);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Patient? findPatientById(String id) {
+    try {
+      return patients.firstWhere((p) => p.id == id);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  void viewAllAppointment() {
+    if (appointments.isEmpty) {
+      print("No appointments found");
+      return;
+    }
+
+    for (var a in appointments) {
+      print("\nAppointment ID: ${a.id}");
+      print("Doctor: ${a.doctor.name} (${a.doctor.id})");
+      print("Patient: ${a.patient.name} (${a.patient.id})");
+      print("Date: ${a.date}");
+      print("Status: ${a.status ? 'Confirmed' : 'Pending'}");
+    }
+  }
+
+  /// Prompt user for doctor id, patient id and date/time and
+  /// return an [Appointment] instance or null if input was invalid.
+  Appointment? getAppointmentFromUserInput() {
+    stdout.write("Enter Doctor ID: ");
+    String? doctorId = stdin.readLineSync();
+
+    stdout.write("Enter Patient ID: ");
+    String? patientId = stdin.readLineSync();
+
+    stdout.write(
+      "Enter Date and time (YYYY-MM-DD HH:MM) :",
+    );
+    String? dateInput = stdin.readLineSync();
+
+    if (doctorId == null || doctorId.isEmpty) {
+      print("✗ Doctor ID cannot be empty");
+      return null;
+    }
+
+    if (patientId == null || patientId.isEmpty) {
+      print("✗ Patient ID cannot be empty");
+      return null;
+    }
+
+    final doctor = findDoctorById(doctorId);
+    if (doctor == null) {
+      print("✗ Doctor with ID $doctorId not found");
+      return null;
+    }
+
+    final patient = findPatientById(patientId);
+    if (patient == null) {
+      print("✗ Patient with ID $patientId not found");
+      return null;
+    }
+
+    DateTime date;
+    if (dateInput == null || dateInput.trim().isEmpty) {
+      date = DateTime.now();
+    } else {
+      // Try to parse input like "YYYY-MM-DD HH:MM"
+      try {
+        // Replace space with 'T' so DateTime.parse can handle it
+        String normalized = dateInput.trim().replaceFirst(' ', 'T');
+        date = DateTime.parse(normalized);
+      } catch (e) {
+        // Fallback: try parsing only date portion
+        try {
+          date = DateTime.parse(dateInput.trim());
+        } catch (e) {
+          print("✗ Invalid date format. Using current date/time instead.");
+          date = DateTime.now();
+        }
+      }
+    }
+
+    return Appointment(date: date, doctor: doctor, patient: patient);
+  }
+
+  /// Add the appointment to hospital records and attach it to doctor and patient.
+  /// Handles exceptions from [addAppointment] (e.g. past dates).
+  void createAndAssignAppointment(Appointment appointment) {
+    try {
+      addAppointment(appointment);
+    } catch (e) {
+      print("✗ ${e.toString()}");
+      return;
+    }
+
+    // Attach to doctor and patient
+    appointment.doctor.appointments.add(appointment);
+    appointment.patient.appointments.add(appointment);
+
+    print(
+      "✓ Appointment ${appointment.id} assigned to Dr. ${appointment.doctor.name} for patient ${appointment.patient.name} on ${appointment.date}",
+    );
+  }
+
   Map<String, dynamic> toJson() => {
-    'name': name,
-    'admin': {'userId': admin.userId, 'gmail': admin.gmail},
-    'location': location,
-    'contact': contact,
-    'patients': patients.map((p) => p.toJson()).toList(),
-    'doctors': doctors.map((d) => d.toJson()).toList(),
-    'appointments': appointments.map((d) => d.toJson()).toList(),
-  };
+        'name': name,
+        'admin': {
+          'userId': admin.userId,
+          'gmail': admin.gmail,
+          'password': admin.password
+        },
+        'location': location,
+        'contact': contact,
+        'patients': patients.map((p) => p.toJson()).toList(),
+        'doctors': doctors.map((d) => d.toJson()).toList(),
+        'appointments': appointments.map((d) => d.toJson()).toList(),
+      };
 
   Hospital.fromJson(Map<String, dynamic> json)
-    : name = json['name'] ?? '',
-      admin = (json['admin'] is Map)
-          ? Admin(
-              userId: (json['admin']['userId'] as int?) ?? 1,
-              gmail: (json['admin']['gmail'] as String?) ?? 'admin@gmail.com',
-              password: (json['admin']['password'] as String?) ?? '123456',
-            )
-          : Admin(userId: 1, gmail: 'admin@gmail.com', password: '123456'),
-      location = json['location'] ?? '',
-      contact = json['contact'] ?? '',
-      doctors = [],
-      patients = [],
-      appointments = [] {
+      : name = json['name'] ?? '',
+        admin = (json['admin'] is Map)
+            ? Admin(
+                userId: (json['admin']['userId'] as int?) ?? 1,
+                gmail: (json['admin']['gmail'] as String?) ?? 'admin@gmail.com',
+                password: (json['admin']['password'] as String?) ?? '123456',
+              )
+            : Admin(userId: 1, gmail: 'admin@gmail.com', password: '123456'),
+        location = json['location'] ?? '',
+        contact = json['contact'] ?? '',
+        doctors = [],
+        patients = [],
+        appointments = [] {
     // Parse patients
     if (json['patients'] is List) {
       for (var p in json['patients']) {
@@ -148,154 +313,6 @@ class Hospital {
       }
     }
   }
-  void addPatient(Patient patient) {
-    // Check if patient already exists
-    bool exists = patients.any((p) => p.id == patient.id);
-    if (exists) {
-      print("Patient with ID ${patient.id} already exists");
-      return;
-    }
-    patients.add(patient);
-    print("Patient ${patient.name} added successfully");
-  }
-
-  void addDoctor(Doctor doctor) {
-    // Check if doctor already exists
-    bool exists = doctors.any((d) => d.id == doctor.id);
-    if (exists) {
-      print("Doctor with ID ${doctor.id} already exists");
-      return;
-    }
-    doctors.add(doctor);
-    print("Doctor ${doctor.name} added successfully");
-  }
-
-  void addAppointment(Appointment appointment) {
-    bool exists = appointments.any((a) => a.id == appointment.id);
-    if (exists) {
-      print("Appoinment with ID ${appointment.id} already exists");
-      return;
-    }
-    appointments.add(appointment);
-    print("Appointment ${appointment.id} added successfully");
-  }
-
-  Doctor? authenticateDoctor(String email, String password) {
-    try {
-      Doctor doctor = doctors.firstWhere((d) => d.gmail == email);
-      if (doctor.login(email, password)) {
-        return doctor;
-      }
-      return null;
-    } catch (e) {
-      print("✗ Doctor account not found");
-      return null;
-    }
-  }
-
-  Doctor? findDoctorById(String id) {
-    try {
-      return doctors.firstWhere((d) => d.id == id);
-    } catch (e) {
-      return null;
-    }
-  }
-
-  Patient? findPatientById(String id) {
-    try {
-      return patients.firstWhere((p) => p.id == id);
-    } catch (e) {
-      return null;
-    }
-  }
-
-  void viewAllAppointment() {
-    if (appointments.isEmpty) {
-      print("No appointments found");
-      return;
-    }
-
-    for (var a in appointments) {
-      print("\nAppointment ID: ${a.id}");
-      print("Doctor: ${a.doctor.name} (${a.doctor.id})");
-      print("Patient: ${a.patient.name} (${a.patient.id})");
-      print("Date: ${a.date}");
-      print("Status: ${a.status ? 'Confirmed' : 'Pending'}");
-    }
-  }
-
-  void makeAppointment() {
-    stdout.write("Enter Doctor ID: ");
-    String? doctorId = stdin.readLineSync();
-
-    stdout.write("Enter Patient ID: ");
-    String? patientId = stdin.readLineSync();
-
-    stdout.write(
-      "Enter Date and time (YYYY-MM-DD HH:MM) or leave empty for now: ",
-    );
-    String? dateInput = stdin.readLineSync();
-
-    if (doctorId == null || doctorId.isEmpty) {
-      print("✗ Doctor ID cannot be empty");
-      return;
-    }
-
-    if (patientId == null || patientId.isEmpty) {
-      print("✗ Patient ID cannot be empty");
-      return;
-    }
-
-    Doctor? doctor = findDoctorById(doctorId);
-    if (doctor == null) {
-      print("✗ Doctor with ID $doctorId not found");
-      return;
-    }
-
-    Patient? patient = findPatientById(patientId);
-    if (patient == null) {
-      print("✗ Patient with ID $patientId not found");
-      return;
-    }
-
-    DateTime date;
-    if (dateInput == null || dateInput.trim().isEmpty) {
-      date = DateTime.now();
-    } else {
-      // Try to parse input like "YYYY-MM-DD HH:MM"
-      try {
-        // Replace space with 'T' so DateTime.parse can handle it, or try direct parse
-        String normalized = dateInput.trim().replaceFirst(' ', 'T');
-        date = DateTime.parse(normalized);
-      } catch (e) {
-        // Fallback: try parsing only date portion
-        try {
-          date = DateTime.parse(dateInput.trim());
-        } catch (e) {
-          print("✗ Invalid date format. Using current date/time instead.");
-          date = DateTime.now();
-        }
-      }
-    }
-
-    // Create the appointment (ID is auto-generated)
-    Appointment appointment = Appointment(
-      date: date,
-      doctor: doctor,
-      patient: patient,
-    );
-
-    // Add to hospital records (addAppointment checks for duplicate IDs)
-    addAppointment(appointment);
-
-    // Attach to doctor and patient
-    doctor.appointments.add(appointment);
-    patient.appointments.add(appointment);
-
-    print(
-      "✓ Appointment ${appointment.id} assigned to Dr. ${doctor.name} for patient ${patient.name} on $date",
-    );
-  }
 }
 
 class Doctor extends User {
@@ -315,42 +332,9 @@ class Doctor extends User {
     required this.contact,
     required this.specialization,
     List<Appointment>? appointments,
-  }) : id = id ?? 'D${Doctor._idCounter++}',
-       appointments = appointments ?? [],
-       super(userId: userId, gmail: gmail, password: password);
-
-  Map<String, dynamic> toJson() => {
-    'id': id,
-    'name': name,
-    'gmail': gmail,
-    'password': password,
-    'contact': contact,
-    'specialization': specialization.toString().split('.').last,
-    'appointments': appointments.map((a) => a.id).toList(),
-  };
-
-  factory Doctor.fromJson(Map<String, dynamic> json) {
-    // specialization may be stored as string
-    DoctorSpecialization spec = DoctorSpecialization.InternalMedicine;
-    if (json['specialization'] is String) {
-      final s = (json['specialization'] as String).toLowerCase();
-      if (s.contains('surgery')) spec = DoctorSpecialization.Surgery;
-      if (s.contains('pediatrics')) spec = DoctorSpecialization.Pediatrics;
-      if (s.contains('obstetrics') || s.contains('gynecology'))
-        spec = DoctorSpecialization.ObstetricsGynecology;
-      if (s.contains('psychiatry')) spec = DoctorSpecialization.Psychiatry;
-    }
-
-    return Doctor(
-      id: json['id'] as String?,
-      gmail: (json['gmail'] as String?) ?? '',
-      password: (json['password'] as String?) ?? '',
-      name: (json['name'] as String?) ?? '',
-      contact: (json['contact'] as String?) ?? '',
-      specialization: spec,
-      appointments: [], // appointments linked later by Hospital.fromJson
-    );
-  }
+  })  : id = id ?? 'D${Doctor._idCounter++}',
+        appointments = appointments ?? [],
+        super(userId: userId, gmail: gmail, password: password);
 
   void viewAppoinments() {
     print("\n=== Appointments for Dr. $name ===");
@@ -388,6 +372,39 @@ class Doctor extends User {
       "Appointment ${appointment.id} accepted for patient ${appointment.patient.name}",
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'gmail': gmail,
+        'password': password,
+        'contact': contact,
+        'specialization': specialization.toString().split('.').last,
+        'appointments': appointments.map((a) => a.id).toList(),
+      };
+
+  factory Doctor.fromJson(Map<String, dynamic> json) {
+    // specialization may be stored as string
+    DoctorSpecialization spec = DoctorSpecialization.InternalMedicine;
+    if (json['specialization'] is String) {
+      final s = (json['specialization'] as String).toLowerCase();
+      if (s.contains('surgery')) spec = DoctorSpecialization.Surgery;
+      if (s.contains('pediatrics')) spec = DoctorSpecialization.Pediatrics;
+      if (s.contains('obstetrics') || s.contains('gynecology'))
+        spec = DoctorSpecialization.ObstetricsGynecology;
+      if (s.contains('psychiatry')) spec = DoctorSpecialization.Psychiatry;
+    }
+
+    return Doctor(
+      id: json['id'] as String?,
+      gmail: (json['gmail'] as String?) ?? '',
+      password: (json['password'] as String?) ?? '',
+      name: (json['name'] as String?) ?? '',
+      contact: (json['contact'] as String?) ?? '',
+      specialization: spec,
+      appointments: [], // appointments linked later by Hospital.fromJson
+    );
+  }
 }
 
 class Patient {
@@ -404,16 +421,16 @@ class Patient {
     String? id,
     required this.name,
     List<Appointment>? appointments,
-  }) : id = id ?? 'P${Patient._idCounter++}',
-       appointments = appointments ?? [];
+  })  : id = id ?? 'P${Patient._idCounter++}',
+        appointments = appointments ?? [];
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'name': name,
-    'age': age,
-    'gender': gender,
-    'appointments': appointments.map((a) => a.id).toList(),
-  };
+        'id': id,
+        'name': name,
+        'age': age,
+        'gender': gender,
+        'appointments': appointments.map((a) => a.id).toList(),
+      };
 
   factory Patient.fromJson(Map<String, dynamic> json) {
     return Patient(
@@ -446,14 +463,33 @@ class Appointment {
     this.meeting,
   }) : id = id ?? 'A${Appointment._idCounter++}';
 
+  void createMeeting(String room) {
+    if (!status) {
+      print("Cannot create meeting for unconfirmed appointment");
+      return;
+    }
+
+    if (meeting != null) {
+      print("Meeting already exists for this appointment");
+      return;
+    }
+
+    meeting = Meeting(id: "MEET$id", dateTime: date, room: room);
+
+    print("Meeting created successfully!");
+    print("Meeting ID: ${meeting!.id}");
+    print("Room: $room");
+    print("Date & Time: $date");
+  }
+
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'date': date.toIso8601String(),
-    'status': status,
-    'doctor': doctor.id,
-    'patient': patient.id,
-    'meeting': meeting?.toJson(),
-  };
+        'id': id,
+        'date': date.toIso8601String(),
+        'status': status,
+        'doctor': doctor.id,
+        'patient': patient.id,
+        'meeting': meeting?.toJson(),
+      };
 
   factory Appointment.fromJson(
     Map<String, dynamic> json, {
@@ -480,24 +516,6 @@ class Appointment {
           : null,
     );
   }
-  void createMeeting(String room) {
-    if (!status) {
-      print("Cannot create meeting for unconfirmed appointment");
-      return;
-    }
-
-    if (meeting != null) {
-      print("Meeting already exists for this appointment");
-      return;
-    }
-
-    meeting = Meeting(id: "MEET$id", dateTime: date, room: room);
-
-    print("Meeting created successfully!");
-    print("Meeting ID: ${meeting!.id}");
-    print("Room: $room");
-    print("Date & Time: $date");
-  }
 }
 
 class Meeting {
@@ -508,10 +526,10 @@ class Meeting {
   Meeting({this.id, required this.dateTime, required this.room});
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'dateTime': dateTime.toIso8601String(),
-    'room': room,
-  };
+        'id': id,
+        'dateTime': dateTime.toIso8601String(),
+        'room': room,
+      };
 
   factory Meeting.fromJson(Map<String, dynamic> json) {
     DateTime dt = DateTime.tryParse(json['dateTime'] ?? '') ?? DateTime.now();

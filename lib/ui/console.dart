@@ -71,7 +71,8 @@ void _adminMenu(Hospital hospital) {
 
     switch (option) {
       case '1':
-        hospital.makeAppointment();
+        Appointment appointment = hospital.getAppointmentFromUserInput()!;
+        hospital.createAndAssignAppointment(appointment);
       case '2':
         hospital.viewAllAppointment();
         break;
