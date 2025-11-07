@@ -3,7 +3,7 @@
   "admin": {
     "userId": 1,
     "gmail": "admin",
-    "password":123
+    "password": "123"
   },
   "location": "PhnomPenh",
   "contact": "01234567",
@@ -22,9 +22,14 @@
       "name": "Sreyka",
       "age": 20,
       "gender": "Female",
-      "appointments": [
-        "A2"
-      ]
+      "appointments": []
+    },
+    {
+      "id": "P3",
+      "name": "Thyrak",
+      "age": 20,
+      "gender": "Male",
+      "appointments": []
     }
   ],
   "doctors": [
@@ -36,8 +41,7 @@
       "contact": "0112345678",
       "specialization": "Surgery",
       "appointments": [
-        "A1",
-        "A2"
+        "A1"
       ]
     },
     {
@@ -62,99 +66,15 @@
   "appointments": [
     {
       "id": "A1",
-      "date": "2025-11-10T10:30:00.000",
-      "status": false,
+      "date": "2025-12-01T10:30:00.000",
+      "status": true,
       "doctor": "D1",
       "patient": "P1",
-      "meeting": null
-    },
-    {
-      "id": "A2",
-      "date": "2025-11-12T09:00:00.000",
-      "status": false,
-      "doctor": "D1",
-      "patient": "P2",
-      "meeting": null
-    },
-    {
-      "id": "A1",
-      "date": "2025-11-12T09:00:00.000",
-      "status": false,
-      "doctor": "D1",
-      "patient": "P1",
-      "meeting": null
-    },
-    {
-      "id": "A1",
-      "date": "2025-11-10T10:30:00.000",
-      "status": false,
-      "doctor": "D1",
-      "patient": "P1",
-      "meeting": null
-    },
-    {
-      "id": "A2",
-      "date": "2025-11-12T09:00:00.000",
-      "status": false,
-      "doctor": "D1",
-      "patient": "P2",
-      "meeting": null
-    },
-    {
-      "id": "A1",
-      "date": "2025-11-12T09:00:00.000",
-      "status": false,
-      "doctor": "D1",
-      "patient": "P1",
-      "meeting": null
-    },
-    {
-      "id": "A1",
-      "date": "2025-11-10T10:30:00.000",
-      "status": false,
-      "doctor": "D1",
-      "patient": "P1",
-      "meeting": null
-    },
-    {
-      "id": "A2",
-      "date": "2025-11-12T09:00:00.000",
-      "status": false,
-      "doctor": "D1",
-      "patient": "P2",
-      "meeting": null
-    },
-    {
-      "id": "A1",
-      "date": "2025-11-12T09:00:00.000",
-      "status": false,
-      "doctor": "D1",
-      "patient": "P1",
-      "meeting": null
-    },
-    {
-      "id": "A1",
-      "date": "2025-11-10T10:30:00.000",
-      "status": false,
-      "doctor": "D1",
-      "patient": "P1",
-      "meeting": null
-    },
-    {
-      "id": "A2",
-      "date": "2025-11-12T09:00:00.000",
-      "status": false,
-      "doctor": "D1",
-      "patient": "P2",
-      "meeting": null
-    },
-    {
-      "id": "A1",
-      "date": "2025-11-12T09:00:00.000",
-      "status": false,
-      "doctor": "D1",
-      "patient": "P1",
-      "meeting": null
+      "meeting": {
+        "id": "MEETA1",
+        "dateTime": "2025-12-01T10:30:00.000",
+        "room": "A102"
+      }
     }
   ]
 }

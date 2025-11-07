@@ -1,10 +1,13 @@
 import 'dart:io';
-import '../domain/hospital.dart';
+import 'package:HospitalProject/data/data.provider.dart';
+
+import 'package:HospitalProject/domain/hospital.dart';
 
 class HospitalConsole {
   Hospital hospital;
 
   HospitalConsole(this.hospital);
+  HospitalRepository repo = HospitalRepository("lib/data/hospital.data.json");
 
   void showConsole() {
     print("Welcome to the Hospital System!");
@@ -36,7 +39,7 @@ class HospitalConsole {
 
     if (gmailInput != null && passwordInput != null) {
       hospital.admin.login(gmailInput, passwordInput);
-      _adminMenu(hospital);
+      _adminMenu(hospital, repo);
     }
   }
 
@@ -60,23 +63,30 @@ class HospitalConsole {
   }
 }
 
-void _adminMenu(Hospital hospital) {
+void _adminMenu(Hospital hospital, HospitalRepository repo) {
   while (hospital.admin.isLoggedIn) {
     print("\n--- Admin Menu ---");
     print("1. Book Appointment for patient");
     print("2. View All Appointments");
-    print("3. Logout");
+    print("3. Add Patients");
+    print("4. Logout");
     stdout.write("Choose an option: ");
     String? option = stdin.readLineSync();
 
     switch (option) {
       case '1':
-        Appointment appointment = hospital.getAppointmentFromUserInput()!;
-        hospital.createAndAssignAppointment(appointment);
+        Appointment newAppointment = hospital.getAppointmentFromUserInput()!;
+        hospital.createAndAssignAppointment(newAppointment);
+        repo.addAppointment(newAppointment);
       case '2':
         hospital.viewAllAppointment();
         break;
       case '3':
+        Patient? newPatient = hospital.getPatientInfo();
+        hospital.addPatient(newPatient!);
+        repo.addPatient(newPatient);
+        break;
+      case '4':
         hospital.admin.logout();
         break;
       default:
@@ -98,15 +108,15 @@ void _doctorMenu(Doctor doctor) {
       case '1':
         doctor.viewAppoinments();
         break;
-      
+
       case '2':
         _manageAppointments(doctor);
         break;
-      
+
       case '3':
         doctor.logout();
         break;
-      
+
       default:
         print("Invalid option.");
     }
@@ -115,10 +125,10 @@ void _doctorMenu(Doctor doctor) {
 
 void _manageAppointments(Doctor doctor) {
   print("\n--- Manage Appointments ---");
-  
-  List<Appointment> pendingAppointments = 
+
+  List<Appointment> pendingAppointments =
       doctor.appointments.where((apt) => !apt.status).toList();
-  
+
   if (pendingAppointments.isEmpty) {
     print("No pending appointments.");
     return;
@@ -133,7 +143,7 @@ void _manageAppointments(Doctor doctor) {
 
   stdout.write("\nEnter Appointment ID: ");
   String? appointmentId = stdin.readLineSync();
-  
+
   if (appointmentId == null || appointmentId.isEmpty) {
     print("Cancelled.");
     return;
@@ -141,9 +151,8 @@ void _manageAppointments(Doctor doctor) {
 
   Appointment? selectedAppointment;
   try {
-    selectedAppointment = doctor.appointments.firstWhere(
-      (apt) => apt.id == appointmentId
-    );
+    selectedAppointment =
+        doctor.appointments.firstWhere((apt) => apt.id == appointmentId);
   } catch (e) {
     print("Appointment not found.");
     return;
@@ -156,10 +165,10 @@ void _manageAppointments(Doctor doctor) {
 
   if (action == '1') {
     doctor.acceptAppoinment(selectedAppointment);
-    
+
     stdout.write("\nCreate meeting? (y/n): ");
     String? createMeeting = stdin.readLineSync();
-    
+
     if (createMeeting?.toLowerCase() == 'y') {
       stdout.write("Enter room: ");
       String? room = stdin.readLineSync();

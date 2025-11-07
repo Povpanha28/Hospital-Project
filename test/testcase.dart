@@ -16,6 +16,7 @@ void main() {
         contact: '011234567',
         specialization: DoctorSpecialization.InternalMedicine);
     patient1 = Patient(age: 18, gender: "Male", name: "ronan");
+    // hospital.patients.add(patient1);
     hospital = Hospital(
         name: 'KhmerHospital',
         contact: '012988765',
@@ -80,5 +81,68 @@ void main() {
 
     // Ensure no appointment was added
     expect(hospital.appointments.length, equals(0));
+  });
+
+  test("Add Patient Successfully", () {
+    // Initially 1 patient in the list
+    expect(hospital.patients.length, equals(1));
+
+    // Create new patient
+    Patient newPatient = Patient(age: 25, gender: "Female", name: "Jessika");
+
+    // Add patient to hospital
+    hospital.patients.add(newPatient);
+
+    // Now there should be 2 patients
+    expect(hospital.patients.length, equals(2));
+
+    // Optional: verify data integrity
+    expect(hospital.patients.last.name, equals("Jessika"));
+    expect(hospital.patients.last.age, equals(25));
+    expect(hospital.patients.last.gender, equals("Female"));
+  });
+
+  test("Doctor Accept the Appointment : ", () {
+    // Create a new appointment
+    Appointment newAppointment = Appointment(
+      date: DateTime(2025, 11, 20, 10, 30),
+      doctor: doctor1,
+      patient: patient1,
+    );
+
+    // Add and assign appointment
+    hospital.createAndAssignAppointment(newAppointment);
+
+    // Doctor accepts the appointment
+    doctor1.acceptAppoinment(newAppointment);
+
+    // Assert: verify appointment is now marked as accepted
+    expect(newAppointment.status, true);
+
+    // Also check that doctor's appointment list includes it
+    expect(doctor1.appointments.contains(newAppointment), isTrue);
+
+    // And hospital should track it as well
+    expect(hospital.appointments.contains(newAppointment), isTrue);
+  });
+
+  test("Doctor Create Meeting for the appointment : ", () {
+    // Act: Create appointment
+    Appointment newAppointment = Appointment(
+      id: "A102",
+      date: DateTime(2025, 11, 20, 10, 30),
+      doctor: doctor1,
+      patient: patient1,
+    );
+
+    hospital.createAndAssignAppointment(newAppointment);
+    doctor1.acceptAppoinment(newAppointment);
+
+    // Doctor creates a meeting for this appointment
+    Meeting newMeeting = newAppointment.createMeeting("A102")!;
+
+    // Assert: check meeting was created correctly
+    expect(newMeeting.room, equals("A102"));
+    expect(newAppointment.meeting, isNotNull);
   });
 }

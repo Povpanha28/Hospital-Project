@@ -149,6 +149,29 @@ class Hospital {
     }
   }
 
+  Patient? getPatientInfo() {
+    stdout.write("Enter Patient Name: ");
+    String? patientName = stdin.readLineSync();
+
+    stdout.write("Enter Patient Age: ");
+    String? ageInput = stdin.readLineSync();
+    int? patientAge = int.tryParse(ageInput ?? '');
+
+    stdout.write("Enter Patient Gender: ");
+    String? patientGender = stdin.readLineSync();
+
+    if (patientName == null ||
+        patientName.isEmpty ||
+        patientAge == null ||
+        patientGender == null ||
+        patientGender.isEmpty) {
+      print("❌ Invalid input. Please try again.");
+      return null;
+    }
+
+    return Patient(age: patientAge, gender: patientGender, name: patientName);
+  }
+
   /// Prompt user for doctor id, patient id and date/time and
   /// return an [Appointment] instance or null if input was invalid.
   Appointment? getAppointmentFromUserInput() {
@@ -350,7 +373,6 @@ class Doctor extends User {
       print("Status: ${appointment.status ? 'Confirmed' : 'Pending'}");
       // choose option to accept appointment
 
-
       // if (appointment.hasMeeting()) {
       //   print(
       //     "Meeting: ${appointment.meeting!.room} - ${appointment.meeting!.getMeetingStatus()}",
@@ -358,7 +380,6 @@ class Doctor extends User {
       // }
     }
     // Option to accept appointments
-
   }
 
   void acceptAppoinment(Appointment appointment) {
@@ -400,8 +421,9 @@ class Doctor extends User {
       if (s.contains('psychiatry')) spec = DoctorSpecialization.Psychiatry;
     }
 
-    return Doctor(
-      id: json['id'] as String?,
+    final id = json['id'] as String?;
+    final doctor = Doctor(
+      id: id,
       gmail: (json['gmail'] as String?) ?? '',
       password: (json['password'] as String?) ?? '',
       name: (json['name'] as String?) ?? '',
@@ -409,6 +431,18 @@ class Doctor extends User {
       specialization: spec,
       appointments: [], // appointments linked later by Hospital.fromJson
     );
+
+    if (id != null) {
+      final match = RegExp(r"(\d+)").firstMatch(id);
+      if (match != null) {
+        final val = int.tryParse(match.group(0) ?? '');
+        if (val != null && val >= Doctor._idCounter) {
+          Doctor._idCounter = val + 1;
+        }
+      }
+    }
+
+    return doctor;
   }
 }
 
@@ -438,8 +472,9 @@ class Patient {
       };
 
   factory Patient.fromJson(Map<String, dynamic> json) {
-    return Patient(
-      id: json['id'] as String?,
+    final id = json['id'] as String?;
+    final patient = Patient(
+      id: id,
       name: (json['name'] as String?) ?? '',
       age: (json['age'] is int)
           ? json['age'] as int
@@ -447,6 +482,20 @@ class Patient {
       gender: (json['gender'] as String?) ?? '',
       appointments: [],
     );
+
+    // If an id was provided like 'P3', advance the static counter so new IDs continue from max
+    if (id != null) {
+      final match = RegExp(r"(\d+)").firstMatch(id);
+      if (match != null) {
+        final val = int.tryParse(match.group(0) ?? '');
+        if (val != null && val >= Patient._idCounter) {
+          Patient._idCounter = val + 1;
+        }
+        
+      }
+    }
+
+    return patient;
   }
 }
 
@@ -468,23 +517,25 @@ class Appointment {
     this.meeting,
   }) : id = id ?? 'A${Appointment._idCounter++}';
 
-  void createMeeting(String room) {
+  Meeting? createMeeting(String room) {
     if (!status) {
       print("Cannot create meeting for unconfirmed appointment");
-      return;
+      return null;
     }
 
     if (meeting != null) {
       print("Meeting already exists for this appointment");
-      return;
+      return null;
     }
 
-    meeting = Meeting(id: "MEET$id", dateTime: date, room: room);
+    meeting = Meeting(id: "MEET${this.id}", dateTime: date, room: room);
 
     print("Meeting created successfully!");
     print("Meeting ID: ${meeting!.id}");
     print("Room: $room");
     print("Date & Time: $date");
+
+    return meeting;
   }
 
   Map<String, dynamic> toJson() => {
@@ -510,8 +561,9 @@ class Appointment {
       parsedDate = DateTime.now();
     }
 
-    return Appointment(
-      id: json['id'] as String?,
+    final id = json['id'] as String?;
+    final appt = Appointment(
+      id: id,
       date: parsedDate,
       status: json['status'] as bool? ?? false,
       doctor: doctor,
@@ -520,6 +572,18 @@ class Appointment {
           ? Meeting.fromJson(json['meeting'])
           : null,
     );
+
+    if (id != null) {
+      final match = RegExp(r"(\d+)").firstMatch(id);
+      if (match != null) {
+        final val = int.tryParse(match.group(0) ?? '');
+        if (val != null && val >= Appointment._idCounter) {
+          Appointment._idCounter = val + 1;
+        }
+      }
+    }
+
+    return appt;
   }
 }
 
